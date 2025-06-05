@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time GPS Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .control-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 120px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+            color: white;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #17a2b8, #6f42c1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #6f42c1, #e83e8c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(111, 66, 193, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active {
+            background: #28a745;
+        }
+
+        .status-inactive {
+            background: #6c757d;
+            animation: none;
+        }
+
+        .status-acquiring {
+            background: #ffc107;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .console-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #856404;
+        }
+
+        .console-note strong {
+            color: #664d03;
+        }
+
+        .imei-row {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .imei-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .stats {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .stats h4 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .stats p {
+            margin: 5px 0;
+            color: #155724;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .control-panel {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+
+            .imei-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <br>
+    <br>
+    
+    <div class="container">
+        
+        <div class="header">
+            <h1>📍 Real-Time GPS Tracker</h1>
+            <p>Live location tracking with data export</p>
+        </div>
+        
+        <div class="content">
+            <div class="control-panel">
+                <div class="imei-row">
+                    <div class="form-group">
+                        <label for="imeiSelect">Select IMEI:</label>
+                        <select id="imeiSelect" onchange="updateSelectedIMEI()">
+                            <option value="">-- Select IMEI --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-add" onclick="addNewIMEI()">➕ Add IMEI</button>
+                </div>
+                <br>
+                <br>
+
+                
+                <div class="form-group" id="newImeiGroup" style="display: none;">
+                    <label for="newImeiInput">New IMEI Number:</label>
+                    <input type="text" id="newImeiInput" placeholder="Enter new IMEI number" maxlength="15">
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-start" id="startBtn" onclick="startTracking()">▶️ Start Tracking</button>
+                    <button class="btn btn-stop" id="stopBtn" onclick="stopTracking()" disabled>⏹️ Stop Tracking</button>
+                    <button class="btn btn-export" id="exportBtn" onclick="exportData()" disabled>📁 Export Data</button>
+                </div>
+            </div>
+            
+            <div class="status">
+                <h3>Status: <span class="status-indicator" id="statusIndicator"></span><span id="statusText">Inactive</span></h3>
+                <p><strong>Current IMEI:</strong> <span id="currentIMEI">Not selected</span></p>
+                <p><strong>GPS Accuracy:</strong> <span id="gpsAccuracy">Unknown</span></p>
+                <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
+                <p><strong>Current Location:</strong> <span id="currentLocation">Acquiring...</span></p>
+                <p><strong>Speed:</strong> <span id="currentSpeed">0 km/h</span></p>
+                
+                <div class="stats" id="trackingStats" style="display: none;">
+                    <h4>📊 Tracking Statistics</h4>
+                    <p><strong>Total Records:</strong> <span id="totalRecords">0</span></p>
+                    <p><strong>Session Duration:</strong> <span id="sessionDuration">00:00:00</span></p>
+                    <p><strong>Distance Traveled:</strong> <span id="distanceTraveled">0 km</span></p>
+                </div>
+            </div>
+            
+            <div class="console-note">
+                <strong>📋 Console Output:</strong> Open your browser's Developer Tools (F12) and check the Console tab to see the tracking data being logged in real-time.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let watchId = null;
+        let isTracking = false;
+        let trackingData = [];
+        let sessionStartTime = null;
+        let totalDistance = 0;
+        let lastPosition = null;
+        let currentIMEI = '';
+
+        // Predefined IMEI numbers
+        const predefinedIMEIs = [
+            '123456789012345',
+            '234567890123456', 
+            '345678901234567',
+            '456789012345678',
+            '567890123456789'
+        ];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeIMEIDropdown();
+            setInitialStatus();
+            
+            // Check for geolocation support
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by this browser.');
+                document.getElementById('startBtn').disabled = true;
+            }
+        });
+
+        // Initialize IMEI dropdown
+        function initializeIMEIDropdown() {
+            const select = document.getElementById('imeiSelect');
+            predefinedIMEIs.forEach(imei => {
+                const option = document.createElement('option');
+                option.value = imei;
+                option.textContent = imei;
+                select.appendChild(option);
+            });
+        }
+
+        // Set initial status
+        function setInitialStatus() {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = 'status-indicator status-inactive';
+        }
+
+        // Update selected IMEI
+        function updateSelectedIMEI() {
+            const select = document.getElementById('imeiSelect');
+            currentIMEI = select.value;
+            document.getElementById('currentIMEI').textContent = currentIMEI || 'Not selected';
+        }
+
+        // Add new IMEI
+        function addNewIMEI() {
+            const newImeiGroup = document.getElementById('newImeiGroup');
+            const input = document.getElementById('newImeiInput');
+            
+            if (newImeiGroup.style.display === 'none') {
+                newImeiGroup.style.display = 'block';
+                input.focus();
+            } else {
+                const newImei = input.value.trim();
+                if (newImei && /^\d{15}$/.test(newImei)) {
+                    // Add to dropdown
+                    const select = document.getElementById('imeiSelect');
+                    const option = document.createElement('option');
+                    option.value = newImei;
+                    option.textContent = newImei;
+                    select.appendChild(option);
+                    
+                    // Select the new IMEI
+                    select.value = newImei;
+                    updateSelectedIMEI();
+                    
+                    // Hide input and clear
+                    newImeiGroup.style.display = 'none';
+                    input.value = '';
+                } else {
+                    alert('Please enter a valid 15-digit IMEI number.');
+                }
+            }
+        }
+
+        // Calculate distance between two coordinates (Haversine formula)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                     Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Calculate bearing between two points
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const lat1Rad = lat1 * Math.PI / 180;
+            const lat2Rad = lat2 * Math.PI / 180;
+            
+            const y = Math.sin(dLon) * Math.cos(lat2Rad);
+            const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - 
+                     Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+            
+            const bearing = Math.atan2(y, x) * 180 / Math.PI;
+            return (bearing + 360) % 360;
+        }
+
+        // Format session duration
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Update tracking statistics
+        function updateStats() {
+            if (!sessionStartTime) return;
+            
+            const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+            document.getElementById('totalRecords').textContent = trackingData.length;
+            document.getElementById('sessionDuration').textContent = formatDuration(duration);
+            document.getElementById('distanceTraveled').textContent = totalDistance.toFixed(3) + ' km';
+        }
+
+        // Variables for fixed interval tracking
+        let trackingInterval = null;
+        let latestPosition = null;
+
+        // Handle GPS position update (stores latest position)
+        function handlePositionUpdate(position) {
+            latestPosition = position;
+            
+            // Update status to active on first successful position
+            if (document.getElementById('statusText').textContent === 'Acquiring GPS...') {
+                const indicator = document.getElementById('statusIndicator');
+                indicator.className = 'status-indicator status-active';
+                document.getElementById('statusText').textContent = 'Active - Tracking...';
+            }
+        }
+
+        // Process and log GPS data (called every 2 seconds)
+        function processGPSData() {
+            if (!latestPosition) {
+                console.log('⚠️ Waiting for GPS signal...');
+                return;
+            }
+
+            const timestamp = new Date().toISOString();
+            const lat = parseFloat(latestPosition.coords.latitude.toFixed(6));
+            const lon = parseFloat(latestPosition.coords.longitude.toFixed(6));
+            const accuracy = Math.round(latestPosition.coords.accuracy);
+            const speed = latestPosition.coords.speed ? Math.round(latestPosition.coords.speed * 3.6) : 0; // Convert m/s to km/h
+            
+            let bearing = 0;
+            let distance = 0;
+            
+            // Calculate bearing and distance if we have a previous position
+            if (lastPosition) {
+                bearing = Math.round(calculateBearing(
+                    lastPosition.coords.latitude, lastPosition.coords.longitude,
+                    lat, lon
+                ));
+                distance = calculateDistance(
+                    lastPosition.coords.latitude, lastPosition.coords.longitude,
+                    lat, lon
+                );
+                totalDistance += distance;
+            }
+            
+            // Create tracking record
+            const trackingRecord = {
+                imei: currentIMEI,
+                latitude: lat,
+                longitude: lon,
+                bearing: bearing,
+                speed: speed,
+                accuracy: accuracy,
+                timestamp: timestamp
+            };
+            
+            // Store the record
+            trackingData.push(trackingRecord);
+            
+            // Create tracking string for console
+            const trackingString = `${currentIMEI}|${lat}|${lon}|${bearing}|${speed}|${accuracy}|${timestamp}`;
+            console.log(trackingString);
+            
+            // Update UI
+            document.getElementById('currentLocation').textContent = `${lat}, ${lon}`;
+            document.getElementById('gpsAccuracy').textContent = `±${accuracy}m`;
+            document.getElementById('currentSpeed').textContent = `${speed} km/h`;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            
+            // Update statistics
+            updateStats();
+            
+            // Store current position for next calculation
+            lastPosition = latestPosition;
+        }
+
+        // Handle GPS errors
+        function handlePositionError(error) {
+            console.error('GPS Error:', error.message);
+            
+            let errorMessage = 'GPS Error: ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage += 'Location access denied by user.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage += 'Location information unavailable.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage += 'Location request timed out.';
+                    break;
+                default:
+                    errorMessage += 'Unknown error occurred.';
+                    break;
+            }
+            
+            document.getElementById('currentLocation').textContent = errorMessage;
+            document.getElementById('gpsAccuracy').textContent = 'Error';
+        }
+
+        // Start tracking
+        function startTracking() {
+            if (!currentIMEI) {
+                alert('Please select an IMEI number first!');
+                return;
+            }
+            
+            // Reset tracking data
+            trackingData = [];
+            totalDistance = 0;
+            lastPosition = null;
+            sessionStartTime = Date.now();
+            
+            isTracking = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('imeiSelect').disabled = true;
+            document.getElementById('exportBtn').disabled = true;
+            document.getElementById('trackingStats').style.display = 'block';
+            
+            // Update status to acquiring
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = 'status-indicator status-acquiring';
+            document.getElementById('statusText').textContent = 'Acquiring GPS...';
+            document.getElementById('currentLocation').textContent = 'Acquiring location...';
+            
+            console.log('🚀 Real-Time GPS Tracking Started');
+            console.log('📋 Format: IMEI|Latitude|Longitude|Bearing|Speed(km/h)|Accuracy(m)|Timestamp');
+            console.log('📱 IMEI:', currentIMEI);
+            console.log('⏱️ Update Interval: Every 2 seconds');
+            console.log('=' .repeat(100));
+            
+            // Start watching position with high accuracy (continuous GPS monitoring)
+            watchId = navigator.geolocation.watchPosition(
+                handlePositionUpdate,
+                handlePositionError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 1000 // Allow 1 second old readings for better performance
+                }
+            );
+
+            // Start fixed interval logging every 2 seconds
+            trackingInterval = setInterval(processGPSData, 2000);
+        }
+
+        // Stop tracking
+        function stopTracking() {
+            isTracking = false;
+            
+            // Clear both GPS watching and interval
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+            
+            // Reset latest position
+            latestPosition = null;
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('imeiSelect').disabled = false;
+            document.getElementById('exportBtn').disabled = trackingData.length === 0;
+            
+            // Update status
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = 'status-indicator status-inactive';
+            document.getElementById('statusText').textContent = 'Stopped';
+            
+            console.log('=' .repeat(100));
+            console.log('🛑 GPS Tracking Stopped');
+            console.log(`📊 Total Records: ${trackingData.length}`);
+            console.log(`📏 Total Distance: ${totalDistance.toFixed(3)} km`);
+        }
+
+        // Export tracking data
+        function exportData() {
+            if (trackingData.length === 0) {
+                alert('No tracking data to export!');
+                return;
+            }
+            
+            // Create CSV content
+            const headers = ['IMEI', 'Latitude', 'Longitude', 'Bearing', 'Speed(km/h)', 'Accuracy(m)', 'Timestamp'];
+            const csvContent = [
+                headers.join(','),
+                ...trackingData.map(record => [
+                    record.imei,
+                    record.latitude,
+                    record.longitude,
+                    record.bearing,
+                    record.speed,
+                    record.accuracy,
+                    record.timestamp
+                ].join(','))
+            ].join('\n');
+            
+            // Detect mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // Mobile-friendly export methods
+                if (navigator.share && navigator.canShare) {
+                    // Use Web Share API if available (modern mobile browsers)
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const file = new File([blob], `gps_tracking_${currentIMEI}_${new Date().toISOString().split('T')[0]}.csv`, {
+                        type: 'text/csv;charset=utf-8;'
+                    });
+                    
+                    if (navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            files: [file],
+                            title: 'GPS Tracking Data',
+                            text: 'GPS tracking data export'
+                        }).then(() => {
+                            console.log('📁 Data shared successfully!');
+                        }).catch(err => {
+                            console.log('Share failed, trying alternative method');
+                            mobileAlternativeExport(csvContent);
+                        });
+                    } else {
+                        mobileAlternativeExport(csvContent);
+                    }
+                } else {
+                    mobileAlternativeExport(csvContent);
+                }
+            } else {
+                // Desktop export (original method)
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `gps_tracking_${currentIMEI}_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                console.log('📁 Data exported successfully!');
+            }
+        }
+
+        // Mobile alternative export method
+        function mobileAlternativeExport(csvContent) {
+            try {
+                // Try creating a data URL and opening in new tab
+                const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `gps_tracking_${currentIMEI}_${new Date().toISOString().split('T')[0]}.csv`;
+                link.target = '_blank';
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                
+                // For mobile, we need to simulate a more direct user interaction
+                const clickEvent = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                link.dispatchEvent(clickEvent);
+                
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                }, 100);
+                
+                // Show instructions for mobile users
+                setTimeout(() => {
+                    alert('📱 Mobile Export: If download didn\'t start automatically, the CSV data will open in a new tab. Use your browser\'s "Save As" or "Download" option to save the file.');
+                }, 500);
+                
+                console.log('📁 Mobile export attempted');
+            } catch (error) {
+                console.error('Mobile export failed:', error);
+                // Fallback: show data in alert for copy-paste
+                if (confirm('Export failed. Would you like to copy the CSV data to clipboard instead?')) {
+                    copyToClipboard(csvContent);
+                }
+            }
+        }
+
+        // Copy to clipboard fallback
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('📋 CSV data copied to clipboard! You can paste it into a text editor and save as .csv file.');
+                }).catch(() => {
+                    showTextArea(text);
+                });
+            } else {
+                showTextArea(text);
+            }
+        }
+
+        // Show textarea for manual copy (ultimate fallback)
+        function showTextArea(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.top = '50%';
+            textarea.style.left = '50%';
+            textarea.style.transform = 'translate(-50%, -50%)';
+            textarea.style.width = '90%';
+            textarea.style.height = '60%';
+            textarea.style.zIndex = '9999';
+            textarea.style.backgroundColor = 'white';
+            textarea.style.border = '2px solid #ccc';
+            textarea.style.padding = '10px';
+            textarea.readOnly = true;
+            
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            overlay.style.zIndex = '9998';
+            overlay.onclick = () => {
+                document.body.removeChild(textarea);
+                document.body.removeChild(overlay);
+            };
+            
+            document.body.appendChild(overlay);
+            
+            alert('📋 Select all text and copy it. Then paste into a text editor and save as .csv file. Tap outside to close.');
+        }
+
+        // Handle Enter key in new IMEI input
+        document.getElementById('newImeiInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewIMEI();
+            }
+        });
+
+        // Prevent page refresh while tracking
+        window.addEventListener('beforeunload', function(e) {
+            if (isTracking) {
+                e.preventDefault();
+                e.returnValue = 'Tracking is active. Are you sure you want to leave?';
+            }
+        });
+    </script>
+</body>
+</html>
